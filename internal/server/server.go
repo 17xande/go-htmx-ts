@@ -3,6 +3,7 @@ package server
 import (
 	"embed"
 	"html/template"
+	"log/slog"
 	"net/http"
 )
 
@@ -36,8 +37,11 @@ func NewServer() *Server {
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	// TODO: rather call Must() in the server constructor to prevent panics at runtime.
-	t := template.Must(template.ParseFS(embTemplates, "templates/*.gohtml"))
-	t.ExecuteTemplate(w, "index.gohtml", nil)
+	layout := template.Must(template.ParseFS(embTemplates, "templates/layouts/layout.gohtml"))
+	t := template.Must(layout.ParseFS(embTemplates, "templates/index.gohtml"))
+	if err := t.ExecuteTemplate(w, "layout.gohtml", nil); err != nil {
+		slog.Error(err.Error())
+	}
 }
 
 func (s *Server) about(w http.ResponseWriter, r *http.Request) {
