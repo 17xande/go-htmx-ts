@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"embed"
+	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"log/slog"
@@ -28,11 +30,30 @@ func NewServer(ctx context.Context) http.Handler {
 
 }
 
+// logger middleware to log requests.
 func logger(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s %s\n", r.RemoteAddr, r.Method, r.URL)
 		h.ServeHTTP(w, r)
 	})
+}
+
+func encode[T any](w http.ResponseWriter, r *http.Request, status int, v T) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		return fmt.Errorf("encode json: %w", err)
+	}
+	return nil
+}
+
+func decode[T any](r *http.Request) (T, error) {
+	var v T
+	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
+		return v, fmt.Errorf("decode json: %w", err)
+	}
+
+	return v, nil
 }
 
 func index(layout *template.Template) http.Handler {
